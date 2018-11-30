@@ -1,2 +1,2 @@
 # StockBoard
-stock analysis board
+A bokeh application for viewing and analysing stocks
