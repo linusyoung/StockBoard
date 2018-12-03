@@ -2,7 +2,7 @@
 from bokeh.io import output_file, show
 from bokeh.plotting import figure
 from bokeh.layouts import column
-from bokeh.models import ColumnDataSource, HoverTool
+from bokeh.models import ColumnDataSource, HoverTool, NumeralTickFormatter
 import numpy as np
 import pandas as pd
 import pandas_datareader.data as web
@@ -55,7 +55,7 @@ def plot_stock(df, stock_code, value_type='Adj Close'):
 
     tooltips = [
         ('Date', '@Date{%F}'),
-        ('Volume', '@Volume')
+        ('Volume', '@Volume{0.0 a}')
     ]
     formatters = {
         'Date': 'datetime'
@@ -65,6 +65,7 @@ def plot_stock(df, stock_code, value_type='Adj Close'):
                     x_axis_type='datetime', plot_height=200)
     volume.vbar(x='Date', top='Volume', width=0.1, source=source)
     volume.line(x='Date', y='Volume', source=source)
+    volume.yaxis[0].formatter = NumeralTickFormatter(format="0,0 a")
     volume.add_tools(hover)
     layout = column(children=[price, volume])
     show(layout)
