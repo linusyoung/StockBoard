@@ -24,6 +24,11 @@ def get_stock(stock_code, start=None, end=None):
     stock = web.DataReader(stock_code, 'yahoo', start=start, end=end)
     stock['MA50'] = stock['Adj Close'].rolling(50).mean()
     stock['MA200'] = stock['Adj Close'].rolling(200).mean()
+    stock['H14'] = stock['High'].rolling(14).max()
+    stock['L14'] = stock['Low'].rolling(14).min()
+    stock['%K'] = 100 * (stock['Close']-stock['L14']) / \
+        (stock['H14']-stock['L14'])
+    stock['%D'] = stock['%K'].rolling(3).mean()
 
     return stock
 
@@ -78,15 +83,22 @@ def plot_stock(df, stock_code, value_type='Adj Close'):
         'Date': 'datetime'
     }
     hover = HoverTool(tooltips=tooltips, formatters=formatters)
-    volume = figure(x_axis_label='Date', y_axis_label='Volume',
+    volume = figure(y_axis_label='Volume',
                     x_axis_type='datetime', plot_height=200)
     volume.vbar(x='Date', top='Volume', width=0.1, source=source)
-    volume.line(x='Date', y='Volume', source=source)
+    volume.line(x='Date', y='Volume', source=source, line_alpha=0.0)
     volume.yaxis[0].formatter = NumeralTickFormatter(format="0,0 a")
     volume.add_tools(hover)
     volume.grid.grid_line_alpha = 0.3
 
-    layout = column(children=[price, volume])
+    so = figure(x_axis_type='datetime', plot_height=200,
+                y_axis_location='right')
+    so.line(x='Date', y='%K', source=source, legend='%k')
+    so.line(x='Date', y='%D', source=source, line_dash='dashed', legend='%d')
+    so.line(x='Date', y=80, source=source, line_color='black')
+    so.line(x='Date', y=20, source=source, line_color='black')
+    so.legend.location = 'top_left'
+    layout = column(children=[price, volume, so])
     save(layout)
 
 
@@ -94,4 +106,10 @@ def plot_stock(df, stock_code, value_type='Adj Close'):
 stock_code = 'AGL.AX'
 stock = get_stock(stock_code)
 stock.reset_index(inplace=True)
+
+# %%
+flter = ['High', 'Low', 'Adj Close', 'H14', 'L14', '%K', '%D']
+print(stock[flter].head(20))
+
+# %%
 plot_stock(stock, stock_code)
