@@ -1,12 +1,17 @@
 # %%
-from bokeh.io import output_file, show, save
-import bokeh
+from bokeh.io import output_file, show, save, curdoc
 from bokeh.plotting import figure
-from bokeh.layouts import column, row
+from bokeh.layouts import column, row, widgetbox
 from bokeh.models import ColumnDataSource, HoverTool, NumeralTickFormatter
+from bokeh.models.widgets import Slider
 import numpy as np
 import pandas as pd
 import pandas_datareader.data as web
+
+# %%
+
+
+stock_code = 'AGL.AX'
 
 # %%
 
@@ -41,18 +46,23 @@ def get_stock(stock_code, start=None, end=None):
 # %%
 
 
-def plot_stock(df, stock_code, value_type='Adj Close'):
+stock = get_stock(stock_code)
+stock.reset_index(inplace=True)
+day_offset = Slider(title='Day Prior', value=200, start=7, end=400, step=1)
+default_stock = stock.iloc[-200:]
+source = ColumnDataSource(default_stock)
+
+
+# %%
+
+def plot_stock(stock_code, value_type='Adj Close'):
     """plot stock values
 
     Args:
 
-        df (DataFrame): historical stock data
         value_type (String): specify which value is used to plot
     """
 
-    output_file('../output/test.html')
-
-    source = ColumnDataSource(df)
     tooltips = [
         ('Date', '@Date{%F}'),
         ('High', '@High'),
@@ -113,20 +123,22 @@ def plot_stock(df, stock_code, value_type='Adj Close'):
     so.line(x='Date', y=80, source=source, line_color='black')
     so.line(x='Date', y=20, source=source, line_color='black')
     so.legend.location = 'top_left'
-    layout = column(price, volume, so)
-    save(layout)
+    return column(price, volume, so)
 
 
-# %%
-stock_code = 'AGL.AX'
-stock = get_stock(stock_code)
-# trunc data to 1 year
-stock = stock['2018']
-stock.reset_index(inplace=True)
+def update_day(attrname, old, new):
+    offset = int(day_offset.value)
+    new_stock = stock.iloc[-offset:]
+    new_source = ColumnDataSource(new_stock)
+    source.data = new_source.data
 
-# %%
-# flter = ['High', 'Low', 'Adj Close', 'H14', 'L14', '%K', '%D']
-# print(stock[flter].head(20))
+
+day_offset.on_change('value', update_day)
 
 # %%
-plot_stock(stock, stock_code)
+
+plot = plot_stock(stock_code)
+inputs = widgetbox(day_offset)
+
+curdoc().add_root(row(inputs, plot))
+curdoc().title = 'Stock board'
