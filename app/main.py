@@ -156,5 +156,5 @@ def update_stock(attrname, old, new):
 stock_symbol.on_change('value', update_stock)
 
 inputs = widgetbox(search_symbol, stock_symbol, day_offset)
-curdoc().add_root(row(inputs, plot))
+curdoc().add_root(row(inputs, plot_layout))
 curdoc().title = 'Stock board'
