@@ -1,9 +1,11 @@
 # %%
+from os.path import join, dirname
+
 from bokeh.io import output_file, show, save, curdoc
 from bokeh.plotting import figure
 from bokeh.layouts import column, row, widgetbox
 from bokeh.models import ColumnDataSource, HoverTool, NumeralTickFormatter
-from bokeh.models.widgets import Slider
+from bokeh.models.widgets import Slider, TextInput
 import numpy as np
 import pandas as pd
 import pandas_datareader.data as web
@@ -12,6 +14,9 @@ import pandas_datareader.data as web
 
 
 stock_code = 'AGL.AX'
+file_path = join(dirname(__file__), 'data/ASXListed.csv')
+symbol_df = pd.read_csv(file_path)
+
 
 # %%
 
@@ -137,8 +142,11 @@ day_offset.on_change('value', update_day)
 
 # %%
 
+# search_symbol = TextInput(title='Search Symbol:',
+#                           placeholder='Type company name', value='test')
 plot = plot_stock(stock_code)
 inputs = widgetbox(day_offset)
 
 curdoc().add_root(row(inputs, plot))
+# curdoc().add_root(row(inputs))
 curdoc().title = 'Stock board'
