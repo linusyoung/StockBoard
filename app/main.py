@@ -128,7 +128,7 @@ def plot_stock(stock_code, value_type='Adj Close'):
     so.line(x='Date', y=80, source=source, line_color='black')
     so.line(x='Date', y=20, source=source, line_color='black')
     so.legend.location = 'top_left'
-    return column(price, volume, so)
+    return price, column(price, volume, so)
 
 
 def update_day(attrname, old, new):
@@ -142,11 +142,20 @@ day_offset.on_change('value', update_day)
 
 # %%
 
-# search_symbol = TextInput(title='Search Symbol:',
-#                           placeholder='Type company name', value='test')
-plot = plot_stock(stock_code)
-inputs = widgetbox(day_offset)
+search_symbol = TextInput(title='Search Symbol:',
+                          placeholder='Type company name')
+plot, plot_layout = plot_stock(stock_code)
 
+stock_symbol = TextInput(title='Stock Symbol:', value='AGL.AX')
+
+
+def update_stock(attrname, old, new):
+    plot.title.text = stock_symbol.value
+
+
+stock_symbol.on_change('value', update_stock)
+
+inputs = widgetbox(search_symbol, stock_symbol, day_offset)
 curdoc().add_root(row(inputs, plot))
 # curdoc().add_root(row(inputs))
 curdoc().title = 'Stock board'
