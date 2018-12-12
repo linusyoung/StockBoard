@@ -13,7 +13,6 @@ import pandas_datareader.data as web
 # %%
 
 
-stock_code = 'AGL.AX'
 file_path = join(dirname(__file__), 'data/ASXListed.csv')
 symbol_df = pd.read_csv(file_path)
 
@@ -50,6 +49,8 @@ def get_stock(stock_code, start=None, end=None):
 
 # %%
 
+
+stock_code = 'AGL.AX'
 
 stock = get_stock(stock_code)
 stock.reset_index(inplace=True)
@@ -150,11 +151,17 @@ stock_symbol = TextInput(title='Stock Symbol:', value='AGL.AX')
 
 
 def update_stock(attrname, old, new):
-    plot.title.text = stock_symbol.value
+    new_stock_symbol = stock_symbol.value
+    plot.title.text = new_stock_symbol
+    new_stock = get_stock(new_stock_symbol)
+    offset = int(day_offset.value)
+    new_stock = new_stock.iloc[-offset:]
+    new_source = ColumnDataSource(new_stock)
+    source.data = new_source.data
 
 
 stock_symbol.on_change('value', update_stock)
 
-inputs = widgetbox(search_symbol, stock_symbol, day_offset)
-curdoc().add_root(row(inputs, plot_layout))
+inputs = row(search_symbol, stock_symbol, day_offset)
+curdoc().add_root(column(inputs, plot_layout))
 curdoc().title = 'Stock board'
