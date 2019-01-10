@@ -45,6 +45,14 @@ def get_stock(stock_code, start=None, end=None):
         (stock["H14"]-stock["L14"])
     stock["%D"] = stock["%K"].rolling(3).mean()
 
+    # MACD
+    stock["12EMA"] = stock["Adj Close"].ewm(com=12).mean()
+    stock["26EMA"] = stock["Adj Close"].ewm(com=26).mean()
+    stock["MACD"] = stock["12EMA"] - stock["26EMA"]
+    # signal line
+    stock["9EMA"] = stock["MACD"].ewm(com=9).mean()
+    stock["MACD_HIST"] = stock["MACD"] - stock["9EMA"]
+
     return stock
 
 # %%
@@ -105,6 +113,9 @@ def plot_stock(stock_code, value_type="Adj Close"):
 
     price.legend.location = "top_left"
     price.legend.orientation = "horizontal"
+    price.legend.background_fill_alpha = 0.0
+    price.legend.border_line_alpha = 0.0
+
     price.toolbar.logo = None
 
     tooltips = [
@@ -115,6 +126,7 @@ def plot_stock(stock_code, value_type="Adj Close"):
         "Date": "datetime"
     }
     hover = HoverTool(tooltips=tooltips, formatters=formatters)
+    # volume plot
     volume = figure(x_axis_type="datetime", plot_height=200,
                     plot_width=380, title="Volume")
     volume.vbar(x="Date", top="Volume", width=0.1, source=source)
@@ -124,7 +136,7 @@ def plot_stock(stock_code, value_type="Adj Close"):
     volume.grid.grid_line_alpha = 0.3
     volume.toolbar.logo = None
     volume.toolbar_location = None
-
+    # stochatic plot
     stochastic = figure(x_axis_type="datetime",
                         plot_height=200, plot_width=380, title="Stochastic")
     stochastic.line(x="Date", y="%K", source=source, legend="%k")
@@ -136,23 +148,33 @@ def plot_stock(stock_code, value_type="Adj Close"):
     stochastic.ygrid.grid_line_alpha = 0.0
     stochastic.legend.location = "top_left"
     stochastic.legend.orientation = "horizontal"
+    stochastic.legend.background_fill_alpha = 0.0
+    stochastic.legend.border_line_alpha = 0.0
+
     stochastic.toolbar.logo = None
     stochastic.toolbar_location = None
 
-    return price, column(price, row(volume, stochastic))
+    # MACD plot
+    macd = figure(x_axis_type="datetime",
+                  plot_height=200, plot_width=380, title="MACD")
+    macd.line(x="Date", y="MACD", source=source, legend="macd")
+    macd.line(x="Date", y="9EMA", source=source,
+              legend="macd", line_color="black")
+    macd.vbar(x="Date", top="MACD_HIST", width=0.1, source=source)
 
+    macd.xgrid.grid_line_alpha = 0.0
+    macd.legend.location = "top_left"
+    macd.legend.orientation = "horizontal"
+    macd.legend.background_fill_alpha = 0.0
+    macd.legend.border_line_alpha = 0.0
 
-def update_day(attrname, old, new):
-    offset = int(day_offset.value)
-    new_stock = stock.iloc[-offset:]
-    new_source = ColumnDataSource(new_stock)
-    source.data = new_source.data
+    macd.toolbar.logo = None
+    macd.toolbar_location = None
 
+    return price, column(price, row(volume, stochastic, macd))
 
-day_offset.on_change("value", update_day)
 
 # %%
-
 search_symbol = TextInput(title="Search Symbol:",
                           placeholder="Type company name")
 plot, plot_layout = plot_stock(stock_code)
@@ -165,17 +187,33 @@ porfolio = Dropdown(label="Select from porfolio",
                     button_type="primary", menu=porfolio_list)
 
 
-def update_stock(attrname, old, new):
-    new_stock_symbol = stock_symbol.value
-    plot.title.text = new_stock_symbol
-    new_stock = get_stock(new_stock_symbol)
+def update_day(attrname, old, new):
     offset = int(day_offset.value)
-    new_stock = new_stock.iloc[-offset:]
+    new_stock = stock.iloc[-offset:]
     new_source = ColumnDataSource(new_stock)
     source.data = new_source.data
 
 
+def update_stock(attrname, old, new):
+    global stock
+    new_stock_symbol = stock_symbol.value
+    plot.title.text = new_stock_symbol
+    stock = get_stock(new_stock_symbol)
+    offset = int(day_offset.value)
+    new_stock = stock.iloc[-offset:]
+    new_source = ColumnDataSource(new_stock)
+    source.data = new_source.data
+
+
+def update_symbol(attrname, old, new):
+    stock_symbol.value = porfolio.value
+
+
+# TODO: update selection list, add function to add_to_porfolio button
+
 stock_symbol.on_change("value", update_stock)
+porfolio.on_change("value", update_symbol)
+day_offset.on_change("value", update_day)
 
 add_to_profolio = Button(label="Add to my profolio", button_type="success")
 
