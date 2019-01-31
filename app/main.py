@@ -4,7 +4,7 @@ from os.path import join, dirname
 from bokeh.io import output_file, show, save, curdoc
 from bokeh.plotting import figure
 from bokeh.layouts import column, row, widgetbox
-from bokeh.models import ColumnDataSource, HoverTool, NumeralTickFormatter
+from bokeh.models import ColumnDataSource, HoverTool, NumeralTickFormatter, AutocompleteInput
 from bokeh.models.widgets import Slider, TextInput, Button, Dropdown
 import numpy as np
 import pandas as pd
@@ -12,11 +12,9 @@ import pandas_datareader.data as web
 
 # %%
 
-
 file_path = join(dirname(__file__), "data/ASXListed.csv")
 symbol_df = pd.read_csv(file_path)
-
-
+symbol_list = symbol_df['ASX code'].tolist()
 # %%
 
 
@@ -175,8 +173,10 @@ def plot_stock(stock_code, value_type="Adj Close"):
 
 
 # %%
-search_symbol = TextInput(title="Search Symbol:",
-                          placeholder="Type company name")
+search_symbol = AutocompleteInput(
+    title="Query Symbol", completions=symbol_list)
+
+
 plot, plot_layout = plot_stock(stock_code)
 
 stock_symbol = TextInput(title="Stock Symbol:", value="AGL.AX")
@@ -209,15 +209,22 @@ def update_symbol(attrname, old, new):
     stock_symbol.value = porfolio.value
 
 
-# TODO: update selection list, add function to add_to_porfolio button
+def add_stock():
+    global porfolio_list, porfolio
+    new_stock_symbol = search_symbol.value + '.AX'
+    porfolio_list.append((new_stock_symbol, new_stock_symbol))
+    porfolio.menu = porfolio_list
+    print(porfolio_list)
+
 
 stock_symbol.on_change("value", update_stock)
 porfolio.on_change("value", update_symbol)
 day_offset.on_change("value", update_day)
 
 add_to_profolio = Button(label="Add to my profolio", button_type="success")
+add_to_profolio.on_click(add_stock)
 
 inputs = column(row(search_symbol, stock_symbol, day_offset),
-                row(porfolio, add_to_profolio))
+                row(add_to_profolio, porfolio))
 curdoc().add_root(column(inputs, plot_layout))
 curdoc().title = "Stock board"
